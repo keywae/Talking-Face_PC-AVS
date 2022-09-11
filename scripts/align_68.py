@@ -50,10 +50,11 @@ def align_folder(folder_path, folder_save_path):
 
     sumpoints = 0
     three_points_list = []
-
+    last_good=''
     for img in preds.keys():
         pred_points = np.array(preds[img])
         if pred_points is None or len(pred_points.shape) != 3:
+            print("Image Failed: "+str(img))
             print('preprocessing failed')
             return False
         else:
@@ -63,10 +64,21 @@ def align_folder(folder_path, folder_save_path):
                 three_points = get_eyes_mouths(pred_points[0])
                 sumpoints += three_points
                 three_points_list.append(three_points)
+                last_good=img
             else:
-
-                print('preprocessing failed')
-                return False
+                pred_points = np.array(preds[last_good])
+                print('preprocessing failed. Will try with last good one')
+                if pred_points is None or len(pred_points.shape) != 3:
+                    print("Image Failed: "+str(img))
+                    print('preprocessing failed')
+                    return False
+                else:
+                    num_faces, size, _ = pred_points.shape
+                    if num_faces == 1 and size == 68:
+                        three_points = get_eyes_mouths(pred_points[0])
+                        sumpoints += three_points
+                        three_points_list.append(three_points)
+                        
     avg_points = sumpoints / len(preds)
     M = get_affine(avg_points)
     p_bias = None
